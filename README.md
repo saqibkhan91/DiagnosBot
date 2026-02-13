@@ -29,8 +29,8 @@ Over 3.6 billion people lack access to basic diagnostic tools (WHO). Early detec
 ## 📊 Progress Timeline
 | Phase              | Timeframe              | Status                  |
 |--------------------|------------------------|-------------------------|
-| Foundational Learning (IBM Data Science Cert) | Dec 2025 – Jan 2026   | In Progress ✅          |
-| Core ML Models (CV + NLP)                    | Feb 2026               | Planned                 |
+| Foundational Learning (IBM Data Science Cert) | Dec 2025 – Jan 2026   | Dec 2025 – Feb 2026 | Completed ✅  |
+| Core ML Models (CV + NLP)                    | Feb 2026               | In Progress ✅          |
 | Robot Simulation & Integration               | Mar 2026               | Planned                 |
 | Live Demo & Deployment                       | Apr 2026               | Planned                 |
 | Accelerator / Funding Applications           | Apr–May 2026           | Planned                 |
