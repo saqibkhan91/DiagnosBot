@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DiagnosBot v4.0</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --card: #161d2e;
+    --border: #1e2d45;
+    --blue: #2C7BE5;
+    --teal: #00c9b1;
+    --gold: #f0b429;
+    --red: #E53E3E;
+    --green: #48BB78;
+    --text: #e8edf5;
+    --muted: #6b7a99;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; height:100vh; display:flex; flex-direction:column; }
+  header { background:var(--card); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-size:20px; font-weight:800; }
+  .logo span { color:var(--teal); }
+  .header-badges { display:flex; gap:8px; }
+  .badge { padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; }
+  .badge-blue { background:rgba(44,123,229,0.2); color:var(--blue); border:1px solid rgba(44,123,229,0.3); }
+  .badge-teal { background:rgba(0,201,177,0.2); color:var(--teal); border:1px solid rgba(0,201,177,0.3); }
+  .container { display:flex; flex:1; overflow:hidden; }
+  .sidebar { width:270px; background:var(--card); border-right:1px solid var(--border); padding:16px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+  .sidebar h3 { font-size:11px; text-transform:uppercase; letter-spacing:2px; color:var(--muted); }
+  .sidebar input, .sidebar select { width:100%; padding:9px 12px; background:var(--surface); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; outline:none; }
+  .sidebar input:focus, .sidebar select:focus { border-color:var(--blue); }
+  .sidebar select option { background:var(--card); }
+  .btn { padding:9px 16px; border-radius:8px; border:none; cursor:pointer; font-size:13px; font-weight:600; width:100%; transition:all 0.2s; }
+  .btn-primary { background:var(--blue); color:white; }
+  .btn-primary:hover { background:#1a6bc4; }
+  .btn-secondary { background:var(--surface); color:var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover { border-color:var(--blue); color:var(--blue); }
+  .btn-green { background:var(--green); color:white; }
+  .btn-green:hover { background:#38a169; }
+  .btn-red { background:var(--red); color:white; }
+  .stat-box { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  .stat-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+  .stat-value { font-size:20px; font-weight:800; color:var(--gold); margin-top:2px; }
+  .history-item { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-bottom:6px; cursor:pointer; transition:border-color 0.2s; }
+  .history-item:hover { border-color:var(--blue); }
+  .history-disease { font-size:12px; font-weight:600; color:var(--teal); }
+  .history-time { font-size:10px; color:var(--muted); margin-top:2px; }
+  .chat-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .messages { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:14px; }
+  .messages::-webkit-scrollbar { width:4px; }
+  .messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .msg { display:flex; gap:10px; max-width:82%; animation:fadeIn 0.3s ease; }
+  .msg.user { margin-left:auto; flex-direction:row-reverse; }
+  .avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+  .bot-avatar { background:linear-gradient(135deg,var(--blue),var(--teal)); }
+  .user-avatar { background:linear-gradient(135deg,var(--gold),#e07b00); }
+  .bubble { padding:11px 15px; border-radius:16px; font-size:14px; line-height:1.6; }
+  .bot .bubble { background:var(--card); border:1px solid var(--border); border-radius:4px 16px 16px 16px; }
+  .user .bubble { background:var(--blue); border-radius:16px 4px 16px 16px; }
+  .bot-name { font-size:11px; color:var(--teal); font-weight:700; margin-bottom:5px; }
+  .emergency-bubble { background:rgba(229,62,62,0.15); border:2px solid var(--red); border-radius:12px; padding:16px; animation:pulse 1s infinite; }
+  .diagnosis-card { background:var(--surface); border:1px solid var(--teal); border-radius:12px; padding:14px; margin-top:10px; }
+  .diagnosis-card h4 { color:var(--teal); margin-bottom:10px; font-size:13px; }
+  .top3-item { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+  .top3-bar { flex:1; height:7px; background:var(--border); border-radius:4px; overflow:hidden; }
+  .top3-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--teal)); border-radius:4px; transition:width 0.8s ease; }
+  .top3-label { font-size:12px; color:var(--text); min-width:155px; }
+  .top3-pct { font-size:12px; color:var(--gold); font-weight:700; min-width:38px; text-align:right; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+  .chip { padding:2px 9px; background:rgba(44,123,229,0.15); border:1px solid rgba(44,123,229,0.3); border-radius:100px; font-size:11px; color:var(--blue); }
+  .action-btns { display:flex; gap:8px; margin-top:12px; }
+  .action-btn { padding:6px 14px; border-radius:100px; border:none; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s; }
+  .pdf-btn { background:rgba(72,187,120,0.2); color:var(--green); border:1px solid rgba(72,187,120,0.3); }
+  .pdf-btn:hover { background:var(--green); color:white; }
+  .typing { display:flex; gap:4px; padding:11px 15px; background:var(--card); border:1px solid var(--border); border-radius:4px 16px 16px 16px; width:58px; }
+  .typing span { width:7px; height:7px; border-radius:50%; background:var(--muted); animation:bounce 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay:0.2s; }
+  .typing span:nth-child(3) { animation-delay:0.4s; }
+  .input-area { padding:14px 20px; background:var(--card); border-top:1px solid var(--border); display:flex; gap:10px; align-items:flex-end; }
+  .input-wrap { flex:1; position:relative; }
+  textarea { width:100%; padding:11px 50px 11px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; color:var(--text); font-size:14px; outline:none; resize:none; max-height:120px; font-family:inherit; line-height:1.5; }
+  textarea:focus { border-color:var(--blue); }
+  textarea::placeholder { color:var(--muted); }
+  .mic-btn { position:absolute; right:12px; bottom:10px; background:none; border:none; cursor:pointer; color:var(--muted); font-size:18px; transition:color 0.2s; }
+  .mic-btn:hover { color:var(--blue); }
+  .mic-btn.recording { color:var(--red); animation:pulse 1s infinite; }
+  .send-btn { width:42px; height:42px; border-radius:50%; background:var(--blue); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
+  .send-btn:hover { background:#1a6bc4; transform:scale(1.05); }
+  .send-btn svg { width:18px; height:18px; fill:white; }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:100; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px; max-width:460px; width:90%; }
+  .modal h2 { color:var(--gold); margin-bottom:14px; }
+  .modal p { color:var(--muted); font-size:14px; line-height:1.6; margin-bottom:14px; }
+  .modal ul { color:var(--muted); font-size:13px; padding-left:20px; margin-bottom:18px; line-height:2; }
+  .checkbox-wrap { display:flex; align-items:center; gap:10px; margin-bottom:18px; cursor:pointer; }
+  .checkbox-wrap input { width:16px; height:16px; accent-color:var(--teal); cursor:pointer; }
+  .checkbox-wrap label { font-size:13px; color:var(--text); cursor:pointer; }
+  .feedback-bar { padding:10px 20px; background:var(--surface); border-top:1px solid var(--border); display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+  .feedback-btn { padding:5px 14px; border-radius:100px; border:1px solid var(--border); background:var(--card); color:var(--text); cursor:pointer; font-size:12px; transition:all 0.2s; }
+  .feedback-btn:hover { border-color:var(--blue); color:var(--blue); }
+  .disclaimer { font-size:11px; color:var(--muted); text-align:center; padding:6px; border-top:1px solid var(--border); }
+  .lang-detected { font-size:11px; color:var(--teal); padding:4px 10px; background:rgba(0,201,177,0.1); border-radius:100px; display:inline-block; margin-bottom:8px; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+</style>
+</head>
+<body>
+
+<!-- Consent Modal -->
+<div class="modal-overlay" id="consentModal">
+  <div class="modal">
+    <h2>⚠️ Before You Start</h2>
+    <p>DiagnosBot is an <strong style="color:white">AI-powered educational tool</strong> and does <strong style="color:white">NOT</strong> replace professional medical advice.</p>
+    <ul>
+      <li>Results are for informational purposes only</li>
+      <li>Always consult a certified doctor for diagnosis</li>
+      <li>Do not use in medical emergencies — call emergency services</li>
+      <li>Your data is stored anonymously to improve DiagnosBot</li>
+    </ul>
+    <div class="checkbox-wrap">
+      <input type="checkbox" id="consentCheck">
+      <label for="consentCheck">I agree to share anonymous symptom data to help improve DiagnosBot</label>
+    </div>
+    <button class="btn btn-primary" onclick="startChat()">🚀 Start Chatting</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">🩺 DiagnosBot <span>v4.0</span></div>
+  <div class="header-badges">
+    <span class="badge badge-blue">30 Languages</span>
+    <span class="badge badge-teal">Groq · Llama 3.3</span>
+    <span class="badge badge-blue">100% ML Accuracy</span>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div>
+      <h3>🔑 Groq API Key</h3>
+      <input type="password" id="apiKey" placeholder="Paste Groq API key...">
+    </div>
+    <div>
+      <h3>🌍 Language</h3>
+      <select id="langSelect"></select>
+      <div id="langDetected" style="display:none;margin-top:6px;"></div>
+    </div>
+    <button class="btn btn-primary" onclick="initSession()">✅ Connect</button>
+    <button class="btn btn-secondary" onclick="newChat()">🔄 New Chat</button>
+
+    <div>
+      <h3>📊 Session</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="stat-box">
+          <div class="stat-label">Symptoms</div>
+          <div class="stat-value" id="symptomCount">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Messages</div>
+          <div class="stat-value" id="msgCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3>🕐 History</h3>
+      <div id="historyList"><p style="font-size:12px;color:var(--muted);">No diagnoses yet</p></div>
+    </div>
+
+    <div style="margin-top:auto;">
+      <p style="font-size:11px;color:var(--muted);text-align:center;line-height:1.6;">
+        ⚠️ For educational purposes only.<br>Always consult a real doctor.
+      </p>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-area">
+    <div class="messages" id="messages"></div>
+    <div class="feedback-bar" id="feedbackBar" style="display:none;">
+      <span>Was this helpful?</span>
+      <button class="feedback-btn" onclick="sendFeedback(true,5)">👍 Yes!</button>
+      <button class="feedback-btn" onclick="sendFeedback(false,2)">👎 No</button>
+    </div>
+    <div class="disclaimer">
+      🩺 DiagnosBot v4.0 · Powered by Groq (Llama 3.3 70B) + Random Forest ML · Built by M Saqib Bilal
+    </div>
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="userInput" rows="1"
+          placeholder="Describe your symptoms... (e.g. I have fever and headache since 2 days)"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this); autoDetectLang(this.value)"></textarea>
+        <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Voice Input">🎤</button>
+      </div>
+      <button class="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let sessionId    = generateId();
+let connected    = false;
+let diagnosed    = false;
+let consent      = false;
+let msgCount     = 0;
+let symptomCount = 0;
+let diagnosisHistory = [];
+let lastDiagnosis    = null;
+let recognition      = null;
+let isRecording      = false;
+let langDetectTimer  = null;
+
+function generateId() {
+  return 'sess_' + Math.random().toString(36).substr(2,9);
+}
+
+// ── Load languages ─────────────────────────────────────────
+async function loadLanguages() {
+  try {
+    const res  = await fetch(`${API}/languages`);
+    const data = await res.json();
+    const sel  = document.getElementById('langSelect');
+    data.languages.forEach(lang => {
+      const opt  = document.createElement('option');
+      opt.value  = lang;
+      opt.text   = lang;
+      sel.appendChild(opt);
+    });
+  } catch(e) { console.error(e); }
+}
+
+// ── Consent ────────────────────────────────────────────────
+function startChat() {
+  consent = document.getElementById('consentCheck').checked;
+  document.getElementById('consentModal').style.display = 'none';
+  addBotMessage(
+    "👋 Hello! I'm <strong>DiagnosBot v4.0</strong>, your AI medical assistant.<br><br>" +
+    "Enter your <strong>Groq API key</strong> in the sidebar and click <strong>Connect</strong>.<br><br>" +
+    "Then describe how you feel — I support <strong>30 languages</strong> and can understand voice input! 🎤"
+  );
+}
+
+// ── Init session ───────────────────────────────────────────
+async function initSession() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const lang   = document.getElementById('langSelect').value;
+  if (!apiKey) { alert('Please enter your Groq API key!'); return; }
+  try {
+    const res  = await fetch(`${API}/init`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id:sessionId, api_key:apiKey, language:lang, consent })
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      connected = true;
+      addBotMessage("✅ <strong>Connected!</strong> I'm ready to help. Please describe your symptoms.");
+    } else {
+      addBotMessage("❌ Connection failed: " + data.message);
+    }
+  } catch(e) {
+    addBotMessage("❌ Could not connect to backend. Make sure server is running!");
+  }
+}
+
+// ── Auto language detection ────────────────────────────────
+function autoDetectLang(text) {
+  if (!connected || text.length < 10) return;
+  clearTimeout(langDetectTimer);
+  langDetectTimer = setTimeout(async () => {
+    try {
+      const res  = await fetch(`${API}/detect_language`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ session_id:sessionId, message:text })
+      });
+      const data = await res.json();
+      if (data.language && data.language !== 'English') {
+        const sel = document.getElementById('langSelect');
+        // Find matching option
+        for (let opt of sel.options) {
+          if (opt.text.includes(data.language)) {
+            sel.value = opt.value;
+            const div = document.getElementById('langDetected');
+            div.style.display = 'block';
+            div.innerHTML = `<span class="lang-detected">🌍 ${data.language} detected</span>`;
+            break;
+          }
+        }
+      }
+    } catch(e) {}
+  }, 1000);
+}
+
+// ── Voice input ────────────────────────────────────────────
+function toggleVoice() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('Voice input is not supported in your browser. Please use Chrome.');
+    return;
+  }
+  if (isRecording) {
+    recognition.stop();
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous    = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    isRecording = true;
+    document.getElementById('micBtn').classList.add('recording');
+    document.getElementById('micBtn').textContent = '🔴';
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results)
+      .map(r => r[0].transcript).join('');
+    document.getElementById('userInput').value = transcript;
+    autoResize(document.getElementById('userInput'));
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    document.getElementById('micBtn').classList.remove('recording');
+    document.getElementById('micBtn').textContent = '🎤';
+  };
+
+  recognition.start();
+}
+
+// ── Send message ───────────────────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const msg   = input.value.trim();
+  if (!msg) return;
+  if (!connected) {
+    addBotMessage("⚠️ Please enter your API key and click <strong>Connect</strong> first!");
+    return;
+  }
+
+  // Check emergency first
+  try {
+    const emergRes  = await fetch(`${API}/check_emergency`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id:sessionId, message:msg })
+    });
+    const emergData = await emergRes.json();
+    if (emergData.is_emergency) {
+      addUserMessage(msg);
+      input.value = '';
+      addEmergencyMessage(emergData.message);
+      return;
+    }
+  } catch(e) {}
+
+  addUserMessage(msg);
+  input.value = '';
+  autoResize(input);
+  msgCount++;
+  document.getElementById('msgCount').textContent = msgCount;
+
+  const typing = addTyping();
+  try {
+    const res  = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id:sessionId, message:msg })
+    });
+    const data = await res.json();
+    removeTyping(typing);
+
+    if (data.status === 'diagnosis') {
+      addDiagnosisMessage(data);
+      lastDiagnosis = data;
+      diagnosed     = true;
+      addToHistory(data.disease, data.confidence);
+      document.getElementById('feedbackBar').style.display = 'flex';
+    } else if (data.status === 'error') {
+      addBotMessage("❌ Error: " + data.message);
+    } else {
+      addBotMessage(data.message);
+    }
+
+    if (data.symptoms) {
+      symptomCount = data.symptoms.length;
+      document.getElementById('symptomCount').textContent = symptomCount;
+    }
+  } catch(e) {
+    removeTyping(typing);
+    addBotMessage("❌ Could not reach server.");
+  }
+}
+
+// ── Add messages ───────────────────────────────────────────
+function addUserMessage(text) {
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML += `
+    <div class="msg user">
+      <div class="avatar user-avatar">👤</div>
+      <div class="bubble">${text}</div>
+    </div>`;
+  scrollDown();
+}
+
+function addBotMessage(text) {
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML += `
+    <div class="msg bot">
+      <div class="avatar bot-avatar">🩺</div>
+      <div>
+        <div class="bot-name">DiagnosBot</div>
+        <div class="bubble">${text}</div>
+      </div>
+    </div>`;
+  scrollDown();
+}
+
+function addEmergencyMessage(text) {
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML += `
+    <div class="msg bot">
+      <div class="avatar" style="background:var(--red)">🚨</div>
+      <div>
+        <div class="bot-name" style="color:var(--red)">EMERGENCY ALERT</div>
+        <div class="emergency-bubble">${text.replace(/\n/g,'<br>')}</div>
+      </div>
+    </div>`;
+  scrollDown();
+}
+
+function addDiagnosisMessage(data) {
+  const msgs   = document.getElementById('messages');
+  const emojis = ['🥇','🥈','🥉'];
+  let top3HTML = '';
+  data.top3.forEach((item,i) => {
+    top3HTML += `
+      <div class="top3-item">
+        <span style="font-size:15px">${emojis[i]}</span>
+        <div class="top3-label">${item.disease}</div>
+        <div class="top3-bar"><div class="top3-fill" style="width:${item.confidence}%"></div></div>
+        <div class="top3-pct">${item.confidence}%</div>
+      </div>`;
+  });
+  let chipsHTML = '';
+  if (data.symptoms && data.symptoms.length > 0) {
+    chipsHTML = '<div class="chips">' +
+      data.symptoms.map(s => `<span class="chip">${s.replace(/_/g,' ')}</span>`).join('') +
+      '</div>';
+  }
+  const msgId = 'diag_' + Date.now();
+  msgs.innerHTML += `
+    <div class="msg bot" id="${msgId}">
+      <div class="avatar bot-avatar">🩺</div>
+      <div style="flex:1">
+        <div class="bot-name">DiagnosBot</div>
+        <div class="bubble">
+          ${data.confidence_msg ? `<div style="margin-bottom:8px;font-size:12px;">${data.confidence_msg}</div>` : ""}${data.message}
+          <div class="diagnosis-card">
+            <h4>🎯 Top 3 Possible Conditions</h4>
+            ${top3HTML}
+            <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+              Symptoms detected: ${chipsHTML}
+            </div>
+            <div class="action-btns">
+              <button class="action-btn pdf-btn" onclick="downloadPDF()">📄 Download PDF Report</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  scrollDown();
+}
+
+// ── PDF Download ───────────────────────────────────────────
+async function downloadPDF() {
+  if (!lastDiagnosis) return;
+  try {
+    const res = await fetch(`${API}/generate_pdf`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        session_id:  sessionId,
+        disease:     lastDiagnosis.disease,
+        confidence:  lastDiagnosis.confidence,
+        symptoms:    lastDiagnosis.symptoms,
+        precautions: lastDiagnosis.precautions || [],
+        description: '',
+        language:    document.getElementById('langSelect').value
+      })
+    });
+    const blob = await res.blob();
+    const url  = window.URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'DiagnosBot_Report.pdf';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    addBotMessage("📄 Your medical report has been downloaded!");
+  } catch(e) {
+    addBotMessage("❌ Could not generate PDF. Please try again.");
+  }
+}
+
+// ── History ────────────────────────────────────────────────
+function addToHistory(disease, confidence) {
+  const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  diagnosisHistory.unshift({ disease, confidence, time });
+  if (diagnosisHistory.length > 5) diagnosisHistory.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (diagnosisHistory.length === 0) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--muted);">No diagnoses yet</p>';
+    return;
+  }
+  list.innerHTML = diagnosisHistory.map(h => `
+    <div class="history-item">
+      <div class="history-disease">${h.disease}</div>
+      <div class="history-time">${h.confidence}% confidence · ${h.time}</div>
+    </div>`).join('');
+}
+
+// ── Typing ─────────────────────────────────────────────────
+function addTyping() {
+  const msgs = document.getElementById('messages');
+  const id   = 'typing_' + Date.now();
+  msgs.innerHTML += `
+    <div class="msg bot" id="${id}">
+      <div class="avatar bot-avatar">🩺</div>
+      <div class="typing"><span></span><span></span><span></span></div>
+    </div>`;
+  scrollDown();
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+// ── Feedback ───────────────────────────────────────────────
+async function sendFeedback(helpful, rating) {
+  await fetch(`${API}/feedback`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ session_id:sessionId, helpful, rating })
+  });
+  document.getElementById('feedbackBar').style.display = 'none';
+  addBotMessage("🙏 Thank you for your feedback! It helps us improve DiagnosBot.");
+}
+
+// ── New chat ───────────────────────────────────────────────
+function newChat() {
+  sessionId    = generateId();
+  connected    = false;
+  diagnosed    = false;
+  msgCount     = 0;
+  symptomCount = 0;
+  lastDiagnosis = null;
+  document.getElementById('messages').innerHTML     = '';
+  document.getElementById('msgCount').textContent   = '0';
+  document.getElementById('symptomCount').textContent = '0';
+  document.getElementById('feedbackBar').style.display = 'none';
+  document.getElementById('langDetected').style.display = 'none';
+  addBotMessage("🔄 New conversation started! Click <strong>Connect</strong> to begin.");
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function scrollDown() {
+  const msgs = document.getElementById('messages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── Init ───────────────────────────────────────────────────
+loadLanguages();
+</script>
+</body>
+</html>

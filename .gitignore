@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 .idea/
+db/*.db
+reports/
+.env
+*api_key*
